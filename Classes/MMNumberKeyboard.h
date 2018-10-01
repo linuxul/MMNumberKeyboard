@@ -122,6 +122,9 @@ typedef NS_ENUM(NSUInteger, MMNumberKeyboardButtonStyle) {
  */
 @property (weak, nonatomic, nullable) id <MMNumberKeyboardDelegate> delegate;
 
+@property (strong, nonatomic) NSDictionary *buttonDictionary;
+@property (strong, nonatomic) UIButton *doneButton;
+
 /**
  *  Configures the special key with an image and an action block.
  *

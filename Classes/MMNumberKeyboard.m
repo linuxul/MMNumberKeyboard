@@ -22,7 +22,7 @@ typedef NS_ENUM(NSUInteger, MMNumberKeyboardButton) {
 
 @interface MMNumberKeyboard () <UIInputViewAudioFeedback, UITextInputDelegate>
 
-@property (strong, nonatomic) NSDictionary *buttonDictionary;
+//@property (strong, nonatomic) NSDictionary *buttonDictionary;
 @property (strong, nonatomic) NSMutableArray *separatorViews;
 @property (strong, nonatomic) NSLocale *locale;
 @property (strong, nonatomic) MMTextInputDelegateProxy *keyInputProxy;
