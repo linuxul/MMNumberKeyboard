@@ -22,7 +22,6 @@ typedef NS_ENUM(NSUInteger, MMNumberKeyboardButton) {
 
 @interface MMNumberKeyboard () <UIInputViewAudioFeedback, UITextInputDelegate>
 
-//@property (strong, nonatomic) NSDictionary *buttonDictionary;
 @property (strong, nonatomic) NSMutableArray *separatorViews;
 @property (strong, nonatomic) NSLocale *locale;
 @property (strong, nonatomic) MMTextInputDelegateProxy *keyInputProxy;
@@ -236,95 +235,99 @@ static const CGFloat MMNumberKeyboardPadSpacing = 8.0f;
 
 - (void)_buttonInput:(UIButton *)button
 {
-    __block MMNumberKeyboardButton keyboardButton = MMNumberKeyboardButtonNone;
+    dispatch_async(dispatch_get_main_queue(), ^{
     
-    [self.buttonDictionary enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
-        MMNumberKeyboardButton k = [key unsignedIntegerValue];
-        if (button == obj) {
-            keyboardButton = k;
-            *stop = YES;
-        }
-    }];
-    
-    if (keyboardButton == MMNumberKeyboardButtonNone) {
-        return;
-    }
-    
-    // Get first responder.
-    id <UIKeyInput> keyInput = self.keyInput;
-    id <MMNumberKeyboardDelegate> delegate = self.delegate;
-    
-    if (!keyInput) {
-        return;
-    }
-    
-    // Handle number.
-    const NSInteger numberMin = MMNumberKeyboardButtonNumberMin;
-    const NSInteger numberMax = MMNumberKeyboardButtonNumberMax;
-    
-    if (keyboardButton >= numberMin && keyboardButton < numberMax) {
-        NSNumber *number = @(keyboardButton - numberMin);
-        NSString *string = number.stringValue;
+        __block MMNumberKeyboardButton keyboardButton = MMNumberKeyboardButtonNone;
         
-        if ([delegate respondsToSelector:@selector(numberKeyboard:shouldInsertText:)]) {
-            BOOL shouldInsert = [delegate numberKeyboard:self shouldInsertText:string];
-            if (!shouldInsert) {
-                return;
+        [self.buttonDictionary enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
+            MMNumberKeyboardButton k = [key unsignedIntegerValue];
+            if (button == obj) {
+                keyboardButton = k;
+                *stop = YES;
+            }
+        }];
+        
+        if (keyboardButton == MMNumberKeyboardButtonNone) {
+            return;
+        }
+        
+        // Get first responder.
+        id <UIKeyInput> keyInput = self.keyInput;
+        id <MMNumberKeyboardDelegate> delegate = self.delegate;
+        
+        if (!keyInput) {
+            return;
+        }
+        
+        // Handle number.
+        const NSInteger numberMin = MMNumberKeyboardButtonNumberMin;
+        const NSInteger numberMax = MMNumberKeyboardButtonNumberMax;
+        
+        if (keyboardButton >= numberMin && keyboardButton < numberMax) {
+            NSNumber *number = @(keyboardButton - numberMin);
+            NSString *string = number.stringValue;
+            
+            if ([delegate respondsToSelector:@selector(numberKeyboard:shouldInsertText:)]) {
+                BOOL shouldInsert = [delegate numberKeyboard:self shouldInsertText:string];
+                if (!shouldInsert) {
+                    return;
+                }
+            }
+            
+            [keyInput insertText:string];
+        }
+        
+        // Handle backspace.
+        else if (keyboardButton == MMNumberKeyboardButtonBackspace) {
+            BOOL shouldDeleteBackward = YES;
+            
+            if ([delegate respondsToSelector:@selector(numberKeyboardShouldDeleteBackward:)]) {
+                shouldDeleteBackward = [delegate numberKeyboardShouldDeleteBackward:self];
+            }
+            
+            if (shouldDeleteBackward) {
+                [keyInput deleteBackward];
             }
         }
         
-        [keyInput insertText:string];
-    }
-    
-    // Handle backspace.
-    else if (keyboardButton == MMNumberKeyboardButtonBackspace) {
-        BOOL shouldDeleteBackward = YES;
-		
-        if ([delegate respondsToSelector:@selector(numberKeyboardShouldDeleteBackward:)]) {
-            shouldDeleteBackward = [delegate numberKeyboardShouldDeleteBackward:self];
-        }
-		
-        if (shouldDeleteBackward) {
-            [keyInput deleteBackward];
-        }
-    }
-    
-    // Handle done.
-    else if (keyboardButton == MMNumberKeyboardButtonDone) {
-        BOOL shouldReturn = YES;
-        
-        if ([delegate respondsToSelector:@selector(numberKeyboardShouldReturn:)]) {
-            shouldReturn = [delegate numberKeyboardShouldReturn:self];
-        }
-        
-        if (shouldReturn) {
-            [self _dismissKeyboard:button];
-        }
-    }
-    
-    // Handle special key.
-    else if (keyboardButton == MMNumberKeyboardButtonSpecial) {
-        dispatch_block_t handler = self.specialKeyHandler;
-        if (handler) {
-            handler();
-        }
-    }
-    
-    // Handle .
-    else if (keyboardButton == MMNumberKeyboardButtonDecimalPoint) {
-        NSString *decimalText = [button titleForState:UIControlStateNormal];
-        if ([delegate respondsToSelector:@selector(numberKeyboard:shouldInsertText:)]) {
-            BOOL shouldInsert = [delegate numberKeyboard:self shouldInsertText:decimalText];
-            if (!shouldInsert) {
-                return;
+        // Handle done.
+        else if (keyboardButton == MMNumberKeyboardButtonDone) {
+            BOOL shouldReturn = YES;
+            
+            if ([delegate respondsToSelector:@selector(numberKeyboardShouldReturn:)]) {
+                shouldReturn = [delegate numberKeyboardShouldReturn:self];
+            }
+            
+            if (shouldReturn) {
+                [self _dismissKeyboard:button];
             }
         }
         
-        [keyInput insertText:decimalText];
-    }
-    
-    [self _configureButtonsForKeyInputState];
+        // Handle special key.
+        else if (keyboardButton == MMNumberKeyboardButtonSpecial) {
+            dispatch_block_t handler = self.specialKeyHandler;
+            if (handler) {
+                handler();
+            }
+        }
+        
+        // Handle .
+        else if (keyboardButton == MMNumberKeyboardButtonDecimalPoint) {
+            NSString *decimalText = [button titleForState:UIControlStateNormal];
+            if ([delegate respondsToSelector:@selector(numberKeyboard:shouldInsertText:)]) {
+                BOOL shouldInsert = [delegate numberKeyboard:self shouldInsertText:decimalText];
+                if (!shouldInsert) {
+                    return;
+                }
+            }
+            
+            [keyInput insertText:decimalText];
+        }
+        
+        [self _configureButtonsForKeyInputState];
+    });
 }
+
 
 - (void)_backspaceRepeat:(UIButton *)button
 {
